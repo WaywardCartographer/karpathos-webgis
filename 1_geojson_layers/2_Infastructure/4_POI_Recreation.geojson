@@ -1,0 +1,24 @@
+{
+"type": "FeatureCollection",
+"name": "4_POI_Recreation",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "id": 1, "osm_id": 1970352828, "poi_type": "Bar", "poi_catego": "Recreation" }, "geometry": { "type": "Point", "coordinates": [ 27.197136992795947, 35.524597789352754 ] } },
+{ "type": "Feature", "properties": { "id": 2, "osm_id": 1970352884, "poi_type": "Nightclub", "poi_catego": "Recreation" }, "geometry": { "type": "Point", "coordinates": [ 27.196441692786529, 35.531481489339725 ] } },
+{ "type": "Feature", "properties": { "id": 3, "osm_id": 1970353007, "poi_type": "Bar", "poi_catego": "Recreation" }, "geometry": { "type": "Point", "coordinates": [ 27.169905692779359, 35.549823189325814 ] } },
+{ "type": "Feature", "properties": { "id": 4, "osm_id": 1975684017, "poi_type": "Bar", "poi_catego": "Recreation" }, "geometry": { "type": "Point", "coordinates": [ 27.212413692808152, 35.50843588937181 ] } },
+{ "type": "Feature", "properties": { "id": 5, "osm_id": -1951203748, "poi_type": "Bar", "poi_catego": "Recreation" }, "geometry": { "type": "Point", "coordinates": [ 27.206210292812354, 35.508637489376639 ] } },
+{ "type": "Feature", "properties": { "id": 6, "osm_id": -573405925, "poi_type": "Nightclub", "poi_catego": "Recreation" }, "geometry": { "type": "Point", "coordinates": [ 27.187514892791821, 35.532307189345616 ] } },
+{ "type": "Feature", "properties": { "id": 7, "osm_id": 53222193, "poi_type": "Bar", "poi_catego": "Recreation" }, "geometry": { "type": "Point", "coordinates": [ 27.119915092920419, 35.476960289512171 ] } },
+{ "type": "Feature", "properties": { "id": 8, "osm_id": 58507998, "poi_type": "Bar", "poi_catego": "Recreation" }, "geometry": { "type": "Point", "coordinates": [ 27.197051192861984, 35.478780089443411 ] } },
+{ "type": "Feature", "properties": { "id": 9, "osm_id": 79724934, "poi_type": "Bar", "poi_catego": "Recreation" }, "geometry": { "type": "Point", "coordinates": [ 27.119812992920455, 35.476980089512196 ] } },
+{ "type": "Feature", "properties": { "id": 10, "osm_id": 133831841, "poi_type": "Bar", "poi_catego": "Recreation" }, "geometry": { "type": "Point", "coordinates": [ 27.192747992874107, 35.472522989459414 ] } },
+{ "type": "Feature", "properties": { "id": 11, "osm_id": -1870870914, "poi_type": "Bar", "poi_catego": "Recreation" }, "geometry": { "type": "Point", "coordinates": [ 27.212876092809129, 35.507518689373235 ] } },
+{ "type": "Feature", "properties": { "id": 12, "osm_id": -1761545583, "poi_type": "Nightclub", "poi_catego": "Recreation" }, "geometry": { "type": "Point", "coordinates": [ 26.928483293143668, 35.417292989792202 ] } },
+{ "type": "Feature", "properties": { "id": 13, "osm_id": -1761476083, "poi_type": "Bar", "poi_catego": "Recreation" }, "geometry": { "type": "Point", "coordinates": [ 26.922575393147721, 35.417411589796956 ] } },
+{ "type": "Feature", "properties": { "id": 14, "osm_id": -1759517383, "poi_type": "Bar", "poi_catego": "Recreation" }, "geometry": { "type": "Point", "coordinates": [ 26.911333993163378, 35.412088989817015 ] } },
+{ "type": "Feature", "properties": { "id": 15, "osm_id": -1752551083, "poi_type": "Bar", "poi_catego": "Recreation" }, "geometry": { "type": "Point", "coordinates": [ 26.922846793147446, 35.417467989796599 ] } },
+{ "type": "Feature", "properties": { "id": 16, "osm_id": -730589262, "poi_type": "Bar", "poi_catego": "Recreation" }, "geometry": { "type": "Point", "coordinates": [ 27.155039492952053, 35.437281589561032 ] } },
+{ "type": "Feature", "properties": { "id": 17, "osm_id": -654369406, "poi_type": "Bar", "poi_catego": "Recreation" }, "geometry": { "type": "Point", "coordinates": [ 27.215179892807964, 35.507166489371969 ] } }
+]
+}

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Karpathos Island WebGIS</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+
+    <style>
+        /* Basic page styling */
+        body {
+            margin: 0; padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            overflow: hidden;
+        }
+        #map { height: 100vh; width: 100vw; }
+
+        /* --- Sidebar Drawer Styles --- */
+        #sidebar {
+            position: absolute; top: 0; left: 0;
+            width: 350px; height: 100%;
+            background-color: white;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+            transform: translateX(-100%);
+            transition: transform 0.3s ease-in-out;
+            z-index: 1001;
+            overflow-y: auto;
+        }
+        #sidebar.open { transform: translateX(0); }
+        .sidebar-content { padding: 20px; }
+        .sidebar-logo { max-width: 100%; height: auto; margin-bottom: 20px; }
+        #sidebar h4 { margin-top: 20px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+
+        /* --- Sidebar Toggle Button (Vertically Centered) --- */
+        #sidebar-toggle {
+            position: absolute; 
+            top: 50%; /* Center vertically */
+            transform: translateY(-50%); /* Adjust for button height */
+            left: 10px; 
+            z-index: 1002;
+            background: white; border: 2px solid rgba(0,0,0,0.2); border-radius: 4px;
+            width: 34px; height: 34px; font-size: 1.5em; line-height: 28px;
+            text-align: center; cursor: pointer; box-shadow: 0 1px 5px rgba(0,0,0,0.65);
+            transition: left 0.3s ease-in-out; 
+        }
+
+        /* --- Shift Leaflet controls AND sidebar button when sidebar is open --- */
+        body.sidebar-open .leaflet-left,
+        body.sidebar-open #sidebar-toggle {
+            left: 370px; /* Shift by sidebar width + margin */
+        }
+        .leaflet-left { transition: left 0.3s ease-in-out; }
+
+        /* --- Scalebar Centering --- */
+        .leaflet-bottom.leaflet-left {
+            width: 100%;
+            pointer-events: none;
+        }
+        .leaflet-control-scale {
+            margin-left: auto;
+            margin-right: auto;
+            pointer-events: auto;
+        }
+
+        /* --- Custom Collapsible Controls --- */
+        .custom-control-container {
+            display: flex; /* Arrange buttons side-by-side */
+            gap: 5px;
+        }
+        .custom-control-container .custom-control-button {
+            background-color: white; border: 2px solid rgba(0,0,0,0.2); border-radius: 4px;
+            width: 36px; height: 36px;
+            cursor: pointer; box-shadow: 0 1px 5px rgba(0,0,0,0.65);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .custom-control-button img {
+            width: 24px; height: 24px;
+        }
+        .custom-control-panel {
+            display: none; 
+            position: absolute; 
+            right: 0; 
+            top: 42px; /* Position BELOW button */
+            background: white; padding: 10px; border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2); max-height: 70vh; width: 220px;
+            overflow-y: auto; line-height: 1.5;
+        }
+        .custom-control-panel.visible { display: block; }
+        .custom-control-panel h5 { margin: 10px 0 5px; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+        .custom-control-panel label, .custom-control-panel input { cursor: pointer; }
+        
+        /* Deactivate All Button Style */
+        .deactivate-btn {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .deactivate-btn:disabled {
+            background-color: #e9ecef;
+            color: #6c757d;
+            cursor: not-allowed;
+        }
+        .deactivate-btn:not(:disabled):hover {
+            background-color: #d4d4d4;
+        }
+
+        /* Popup Table Styling */
+        .popup-table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 12px;
+        }
+        .popup-table th, .popup-table td {
+            border: 1px solid #ddd;
+            padding: 4px;
+            text-align: left;
+        }
+        .popup-table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+
+        /* Custom Tool Button Styling */
+        .custom-tool-button {
+            background-color: white; border-radius: 4px;
+            width: 34px; height: 34px;
+            border: 2px solid rgba(0,0,0,0.2);
+            box-shadow: 0 1px 5px rgba(0,0,0,0.65);
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer;
+        }
+        .custom-tool-button img, .custom-tool-button svg { 
+             width: 20px; height: 20px; 
+        }
+        .custom-tool-button:hover { background-color: #f4f4f4; }
+
+        /* NEW: Spacing for Action Toolbar */
+        .action-toolbar-container.leaflet-bar {
+            display: flex;
+            flex-direction: column;
+            gap: 5px; /* Spacing between buttons */
+        }
+        .action-toolbar-container a {
+             border-radius: 4px !important; /* Override Leaflet's ribbon style */
+             border-bottom: 2px solid rgba(0,0,0,0.2) !important;
+        }
+
+    </style>
+</head>
+<body class="">
+
+    <div id="map"></div>
+
+    <div id="sidebar">
+        <div class="sidebar-content">
+            <img src="2_styles/3_Map_Images/NTUA_logo.png" alt="NTUA Logo" class="sidebar-logo">
+            <h4>Spatial Databases - 4th project</h4>
+            <p><strong>Map Composition:</strong> Alexandros Paraskevas<br><strong>ID:</strong> 60242323<br><strong>Academic Year:</strong> 2024-2025</p>
+            <p><strong>Location:</strong> Karpathos Island, Greece</p>
+            <p><strong>Purpose:</strong> This webmap was designed to visualize the data used and produced in the scope of the 4th assignment for the subject 'Spatial Databases'</p>
+            <hr>
+            <h4>Data Sources</h4>
+            <p><strong>Points of Interest & Networks:</strong><br>BBBike.org</p>
+            <p><strong>DEM Contours & Coastline:</strong><br>SRTM & GEBCO</p>
+            <p><strong>Land Cover & Seabed:</strong><br>CORINE & EMODnet</p>
+        </div>
+    </div>
+    <button id="sidebar-toggle">☰</button>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <script>
+        // --- 1. BASEMAPS & INITIALIZATION ---
+        const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>' });
+        const esriSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Tiles &copy; Esri' });
+
+        const map = L.map('map', {
+            layers: [osm],
+            center: [35.6, 27.15],
+            zoom: 10,
+            zoomControl: false
+        });
+        
+        const karpathosBounds = [[35.4, 26.9], [35.9, 27.4]]; // WGS84 coordinates for the extent
+        let userMarker = null;
+
+        const baseMaps = { "Street Map": osm, "Satellite": esriSatellite };
+        let currentBasemap = osm;
+        const loadedLayers = {};
+
+        // --- 2. LAYER DATA DEFINITION ---
+        const layerGroups = [
+            { name: '1. Queries', layers: [ { id: 'Q1', name: 'Food near Recreation', path: '1_geojson_layers/1_queries/Q1_Food_near_Recreation.geojson' }, { id: 'Q2', name: 'Mountain Roads', path: '1_geojson_layers/1_queries/Q2_Mountain_Roads.geojson' }, { id: 'Q3', name: 'Landcover near Waterways', path: '1_geojson_layers/1_queries/Q3_Landcover_near_waterways.geojson' }, { id: 'Q4', name: 'Buildings near Coastline', path: '1_geojson_layers/1_queries/Q4_Buildings_near_Coastline.geojson' }, { id: 'Q5', name: 'Landcover near Tourism', path: '1_geojson_layers/1_queries/Q5_Landcover_near_tourism.geojson' } ] },
+            { name: '2. Infrastructure', layers: [ { id: 'Buildings', name: 'Buildings', path: '1_geojson_layers/2_Infastructure/Buildings.geojson' }, { id: 'Road_Network', name: 'Road Network', path: '1_geojson_layers/2_Infastructure/Road_Network.geojson' }, { id: 'POI_Utilities', name: 'POI: Utilities', path: '1_geojson_layers/2_Infastructure/1_POI_Utilities.geojson' }, { id: 'POI_Tourism', name: 'POI: Tourism', path: '1_geojson_layers/2_Infastructure/2_POI_Tourism.geojson' }, { id: 'POI_Food', name: 'POI: Food', path: '1_geojson_layers/2_Infastructure/3_POI_Food.geojson' }, { id: 'POI_Recreation', name: 'POI: Recreation', path: '1_geojson_layers/2_Infastructure/4_POI_Recreation.geojson' }, { id: 'POI_Health', name: 'POI: Health', path: '1_geojson_layers/2_Infastructure/5_POI_Health.geojson' }, { id: 'POI_Other', name: 'POI: Other', path: '1_geojson_layers/2_Infastructure/6_POI_Other.geojson' } ] },
+            { name: '3. Natural Features', layers: [ { id: 'Coastline', name: 'Coastline', path: '1_geojson_layers/3_Natural/Coastline.geojson' }, { id: 'Waterways', name: 'Waterways', path: '1_geojson_layers/3_Natural/Waterways.geojson' }, { id: 'DEM_Contours', name: 'DEM Contours', path: '1_geojson_layers/3_Natural/DEM_Contours.geojson' }, { id: 'Land_Cover', name: 'Land Cover', path: '1_geojson_layers/3_Natural/Land_Cover.geojson' }, { id: 'Seabed', name: 'Seabed', path: '1_geojson_layers/3_Natural/Seabed.geojson' } ] }
+        ];
+
+        // --- 3. MAP CONTROLS ---
+        L.control.zoom({ position: 'topleft' }).addTo(map);
+        L.control.scale({ position: 'bottomleft', metric: true, imperial: false }).addTo(map);
+
+        // Custom Tools Control
+        const ActionToolbar = L.Control.extend({
+            options: { position: 'topleft' },
+            onAdd: function(map) {
+                const container = L.DomUtil.create('div', 'leaflet-bar action-toolbar-container');
+                
+                const zoomExtentButton = L.DomUtil.create('a', 'custom-tool-button', container);
+                zoomExtentButton.innerHTML = `<img src="2_styles/4_map_buttons/zoom_map_extent.png" title="Zoom to Map Extent">`;
+                zoomExtentButton.href = '#';
+                zoomExtentButton.onclick = (e) => { e.preventDefault(); map.flyToBounds(karpathosBounds); };
+
+                const placeMarkerButton = L.DomUtil.create('a', 'custom-tool-button', container);
+                placeMarkerButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>`;
+                placeMarkerButton.title = 'Place a Marker';
+                placeMarkerButton.href = '#';
+                placeMarkerButton.onclick = (e) => { e.preventDefault(); enterMarkerMode(); };
+
+                L.DomEvent.disableClickPropagation(container);
+                return container;
+            }
+        });
+        new ActionToolbar().addTo(map);
+        
+        // --- 4. ADVANCED STYLING & POPUPS ---
+        const iconMapping = { 'Hospital': '2_styles/1_POI_symbols_png/Hospital.png', 'Information': '2_styles/1_POI_symbols_png/Information.png', 'Lighthouse': '2_styles/1_POI_symbols_png/Lighthouse.png', 'Monument': '2_styles/1_POI_symbols_png/Monument.png', 'Museum': '2_styles/1_POI_symbols_png/Museum.png', 'Nightclub': '2_styles/1_POI_symbols_png/Nightclub.png', 'Park': '2_styles/1_POI_symbols_png/Park.png', 'Pharmacy': '2_styles/1_POI_symbols_png/Pharmacy.png', 'Port': '2_styles/1_POI_symbols_png/Port.png', 'Restaurant': '2_styles/1_POI_symbols_png/Restaurant.png', 'Windmill': '2_styles/1_POI_symbols_png/Windmill.png', 'Accomodation': '2_styles/1_POI_symbols_png/Accomodation.png', 'Archaeological site': '2_styles/1_POI_symbols_png/Archaeological_Site.png', 'Bank': '2_styles/1_POI_symbols_png/Bank.png', 'Bar': '2_styles/1_POI_symbols_png/Bar.png', 'Cafe': '2_styles/1_POI_symbols_png/Cafe.png', 'Castle': '2_styles/1_POI_symbols_png/Castle.png', 'Church': '2_styles/1_POI_symbols_png/Church.png', 'Gas station': '2_styles/1_POI_symbols_png/Fuel_Station.png' };
+        function getStyleForLayer(feature, layerId) { switch (layerId) { case 'Land_Cover': return getCorineStyle(feature); case 'Road_Network': return getRoadStyle(feature); case 'Waterways': return { color: '#0077be', weight: 2, dashArray: '5, 5' }; case 'Coastline': return { color: '#005a8f', weight: 3 }; case 'DEM_Contours': return { color: '#964B00', weight: 1 }; case 'Seabed': return getSeabedStyle(feature); case 'Buildings': return { color: '#6a4a3c', weight: 1, fillOpacity: 0.7 }; case 'Q2': return { color: '#00FFFF', weight: 4, opacity: 0.9 }; case 'Q3': case 'Q4': case 'Q5': return { color: '#FF00FF', weight: 3, dashArray: '5, 5', fillOpacity: 0.2 }; default: return { color: "#ff7800", weight: 2 }; } }
+        function getCorineStyle(feature) { const code = feature.properties.code_18; let color = '#808080'; if (code.startsWith('1')) color = '#E60000'; if (code.startsWith('2')) color = '#FFFF00'; if (code.startsWith('3')) color = '#228B22'; if (code === '321') color = '#90EE90'; if (code === '324') color = '#A52A2A'; if (code === '333') color = '#D3D3D3'; if (code.startsWith('4')) color = '#ADD8E6'; if (code.startsWith('5')) color = '#0000FF'; return { fillColor: color, color: color, weight: 1, fillOpacity: 0.7 }; }
+        function getRoadStyle(feature) { switch (feature.properties.net_type) { case 'Main': return { color: '#d95f02', weight: 3 }; case 'Minor': return { color: '#7570b3', weight: 2 }; case 'Footway': return { color: '#663300', weight: 1, dashArray: '4, 4' }; default: return { color: 'grey', weight: 1 }; } }
+        function getSeabedStyle(feature) { const type = feature.properties.class; let color = '#F5DEB3'; if (type.includes('Silt')) color = '#D2B48C'; if (type.includes('Sand')) color = '#F4A460'; if (type.includes('Rock')) color = '#A9A9A9'; if (type.includes('Mud')) color = '#8B4513'; return { fillColor: color, color: color, weight: 1, fillOpacity: 0.7 }; }
+        function pointToLayer(feature, latlng, layerId) { const poiType = feature.properties.poi_type; const iconUrl = iconMapping[poiType]; if (iconUrl) { return L.marker(latlng, { icon: L.icon({ iconUrl: iconUrl, iconSize: [24, 24], iconAnchor: [12, 12], popupAnchor: [0, -12] }) }); } if (layerId === 'Q1') { return L.marker(latlng, { icon: L.divIcon({ html: `<svg viewBox="0 0 24 24" width="28" height="28" style="filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" fill="#FFEB3B" stroke="black" stroke-width="1"/></svg>`, className: '', iconSize: [28, 28], iconAnchor: [14, 14] }) }); } return L.circleMarker(latlng, { radius: 5, fillColor: '#3388ff', color: '#000', weight: 1, opacity: 1, fillOpacity: 0.8 }); }
+        function onEachFeature(feature, layer) { if (feature.properties) { let popupContent = '<table class="popup-table">'; for (const key in feature.properties) { popupContent += `<tr><th>${key}</th><td>${feature.properties[key]}</td></tr>`; } popupContent += '</table>'; layer.bindPopup(popupContent); } }
+        
+        // --- 5. LAYER TOGGLING & CONTROL PANELS LOGIC ---
+        const CustomControls = L.Control.extend({
+            options: { position: 'topright' },
+            onAdd: function(map) { const container = L.DomUtil.create('div', 'custom-control-container'); const basemapButtonContainer = L.DomUtil.create('div', 'leaflet-bar', container); const basemapButton = L.DomUtil.create('a', 'custom-control-button', basemapButtonContainer); basemapButton.innerHTML = `<img src="2_styles/4_map_buttons/Display_Base_Layers.png" alt="Basemaps">`; basemapButton.href = '#'; const basemapPanel = L.DomUtil.create('div', 'custom-control-panel', basemapButtonContainer); const layersButtonContainer = L.DomUtil.create('div', 'leaflet-bar', container); const layersButton = L.DomUtil.create('a', 'custom-control-button', layersButtonContainer); layersButton.innerHTML = `<img src="2_styles/4_map_buttons/Display_Layers.png" alt="Layers">`; layersButton.href = '#'; const layersPanel = L.DomUtil.create('div', 'custom-control-panel', layersButtonContainer); const deactivateBtn = L.DomUtil.create('button', 'deactivate-btn', layersPanel); deactivateBtn.id = 'deactivate-all-btn'; deactivateBtn.innerText = 'Deactivate All Layers'; deactivateBtn.disabled = true; deactivateBtn.onclick = () => { const allCheckboxes = layersPanel.querySelectorAll('input[type=checkbox]'); allCheckboxes.forEach(cb => { if (cb.checked) { cb.checked = false; toggleLayer(cb); } }); }; Object.keys(baseMaps).forEach(name => { const div = L.DomUtil.create('div', '', basemapPanel); const radio = L.DomUtil.create('input', '', div); radio.type = 'radio'; radio.name = 'basemap'; radio.id = name; if (baseMaps[name] === currentBasemap) radio.checked = true; radio.onchange = () => { map.removeLayer(currentBasemap); currentBasemap = baseMaps[name]; map.addLayer(currentBasemap); }; const label = L.DomUtil.create('label', '', div); label.htmlFor = name; label.innerText = ' ' + name; }); layerGroups.forEach(group => { L.DomUtil.create('h5', '', layersPanel).innerText = group.name; group.layers.forEach(layer => { const div = L.DomUtil.create('div', '', layersPanel); const checkbox = L.DomUtil.create('input', '', div); checkbox.type = 'checkbox'; checkbox.id = layer.id; checkbox.dataset.path = layer.path; checkbox.onchange = (e) => toggleLayer(e.target); const label = L.DomUtil.create('label', '', div); label.htmlFor = layer.id; label.innerText = ' ' + layer.name; }); }); basemapButton.onclick = (e) => { e.stopPropagation(); layersPanel.classList.remove('visible'); basemapPanel.classList.toggle('visible'); }; layersButton.onclick = (e) => { e.stopPropagation(); basemapPanel.classList.remove('visible'); layersPanel.classList.toggle('visible'); }; L.DomEvent.disableClickPropagation(container); return container; }
+        });
+        new CustomControls().addTo(map);
+
+        map.on('click', () => { document.querySelectorAll('.custom-control-panel').forEach(panel => panel.classList.remove('visible')); });
+
+        function updateDeactivateButtonState() { const deactivateBtn = document.getElementById('deactivate-all-btn'); if (deactivateBtn) { const anyLayerActive = document.querySelector('.custom-control-panel input[type=checkbox]:checked'); deactivateBtn.disabled = !anyLayerActive; } }
+        function toggleLayer(checkbox) { const layerId = checkbox.id; const layerPath = checkbox.dataset.path; if (checkbox.checked) { if (loadedLayers[layerId]) { map.addLayer(loadedLayers[layerId]); } else { fetch(layerPath) .then(response => { if (!response.ok) throw new Error(`Network error`); return response.json(); }) .then(data => { const geoJsonLayer = L.geoJSON(data, { style: (feature) => getStyleForLayer(feature, layerId), onEachFeature: onEachFeature, pointToLayer: (feature, latlng) => pointToLayer(feature, latlng, layerId) }); loadedLayers[layerId] = geoJsonLayer; map.addLayer(geoJsonLayer); if (data.features && data.features.length > 0) { map.flyToBounds(geoJsonLayer.getBounds(), { padding: [50, 50] }); } }).catch(error => { console.error('Error loading layer:', error); checkbox.checked = false; }) .finally(updateDeactivateButtonState); } } else { if (loadedLayers[layerId]) { map.removeLayer(loadedLayers[layerId]); } } updateDeactivateButtonState(); }
+
+        // --- 6. SIDEBAR DRAWER LOGIC ---
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        sidebarToggle.addEventListener('click', () => {
+            document.body.classList.toggle('sidebar-open');
+            document.getElementById('sidebar').classList.toggle('open');
+        });
+        L.DomEvent.disableClickPropagation(document.getElementById('sidebar'));
+        
+        // --- 7. MARKER PLACEMENT LOGIC ---
+        function enterMarkerMode() { document.getElementById('map').style.cursor = 'crosshair'; map.once('click', placeMarker); }
+        function placeMarker(e) { if (userMarker) { map.removeLayer(userMarker); } const popupContent = ` <table class="popup-table"> <tr><th>Coord X</th><td>${e.latlng.lng.toFixed(5)}</td></tr> <tr><th>Coord Y</th><td>${e.latlng.lat.toFixed(5)}</td></tr> </table> <button onclick="deleteUserMarker()" style="width:100%; margin-top: 5px; cursor:pointer;">Delete Marker</button> `; userMarker = L.marker(e.latlng).addTo(map) .bindPopup(popupContent).openPopup(); userMarker.on('popupclose', () => { if (userMarker) { deleteUserMarker(); } }); document.getElementById('map').style.cursor = ''; }
+        function deleteUserMarker() { if (userMarker) { map.removeLayer(userMarker); userMarker = null; } }
+    </script>
+</body>
+</html>
+
